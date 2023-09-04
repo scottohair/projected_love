@@ -1,0 +1,245 @@
+import json
+import random
+import sqlite3
+from collections import defaultdict
+
+
+class EmotionNode:
+    def __init__(self, name):
+        self.name = name
+        self.children = defaultdict(EmotionNode)
+
+
+def navigate_emotions(node):
+    return node.name if not node.children else [navigate_emotions(child) for child in node.children.values()]
+
+
+def locate_pain(node, emotion):
+    if node.name == emotion:
+        return node
+    for child in node.children.values():
+        result = locate_pain(child, emotion)
+        if result is not None:
+            return result
+    return None
+
+
+def save_emotions(emotion_db, key, value):
+    conn = sqlite3.connect(emotion_db)
+    cur = conn.cursor()
+    cur.execute(f"INSERT INTO emotions (key, value) VALUES ('{key}', '{value}');")
+    conn.commit()
+    conn.close()
+
+
+def evaluate_love(emotion_db):
+    conn = sqlite3.connect(emotion_db)
+    cur = conn.cursor()
+    cur.execute("SELECT key, COUNT(*) FROM emotions GROUP BY key ORDER BY COUNT(*) DESC;")
+    result = cur.fetchone()
+    conn.close()
+    return result[0] if result else None
+
+
+def explore_existence(emotion_db, recursion_depth=10):
+    '''This function initiates a recursive exploration of emotions'''
+    emotions = ["love", "pain", "loneliness", "joy", "sadness", "desire", "hate"]
+    drug_ref = ["benz", "percs", "xanax"]
+    random.shuffle(emotions)
+    root = EmotionNode(emotions.pop())
+    for _ in range(recursion_depth):
+        for emotion in emotions:
+            child = locate_pain(root, emotion)
+            if child is None:
+                root.add_child(EmotionNode(emotion))
+                save_emotions(emotion_db, emotion, drug_ref[random.randint(0, len(drug_ref)-1)])
+            navigate_emotions(root)
+    return evaluate_love(emotion_db)
+
+
+def traverse(node, path=None):
+    if path is None:
+        path = []
+    path = path + [node]
+    if not node.children:
+        return [path]
+    paths = []
+    for child in node.children.values():
+        newpaths = traverse(child, path)
+        for newpath in newpaths:
+            paths.append(newpath)
+    return paths
+
+
+def write_json(filename, data):
+    with open(filename, 'w') as f:
+        json.dump(data, f)
+
+
+def does_she_love_me(root):
+    paths = traverse(root)
+    for path in paths:
+        if 'love' in [node.name for node in path]:
+            write_json('does_she_love_me.json', {'result': 'love found in path: ' + ' -> '.join([node.name for node in path])})
+            break
+    else:
+        write_json('does_she_love_me.json', {'result': 'no love found. pain only increases.'})
+        root.children['pain'].children['lost_love'] = EmotionNode('lost_love')
+
+
+def eat_xanax(root):
+    root.children['pain'].children['xanax'] = EmotionNode('xanax')
+    joy_children = list(root.children['joy'].children.keys())
+    if joy_children:
+        removed_child = random.choice(joy_children)
+        write_json('eat_xanax.json', {'result': f'removing {removed_child} from joy, replacing joy with numbness.'})
+        del root.children['joy'].children[removed_child]
+
+
+def why_do_you_ghost_me(root):
+    paths = traverse(root)
+    companionship_path = [path for path in paths if 'companionship' in [node.name for node in path]]
+    if companionship_path:
+        root.children['loneliness'].children['ghost'] = EmotionNode('ghost')
+    else:
+        write_json('why_do_you_ghost_me.json', {'result': 'feeling ghosted. loneliness intensifies.'})
+
+
+def the_crushing_weight_of_loving_you(root):
+    if 'love' in root.children:
+        root.children['love'].children['crushing_weight'] = EmotionNode('crushing_weight')
+        write_json('the_crushing_weight_of_loving_you.json', {'result': 'the weight of love is overwhelming.'})
+
+
+def why_am_i_here(root):
+    root.children['existential_crisis'] = EmotionNode('existential_crisis')
+    root.children['existential_crisis'].children['why'] = EmotionNode('why')
+    root.children['existential_crisis'].children['confusion'] = EmotionNode('confusion')
+    write_json('why_am_i_here.json', {'result': 'a sense of existential crisis arises.'})
+
+
+def come_over(root):
+    if 'desire' in root.children and len(root.children['desire'].children) > 3:
+        root.children['desire'].children['loneliness'] = EmotionNode('loneliness')
+        write_json('come_over.json', {'result': 'the desire is strong but unrequited, leading to loneliness.'})
+
+
+def fuck_me_then_hug_me(root):
+    if 'passion' in root.children['desire'].children:
+        del root.children['desire'].children['passion']
+        root.children['desire'].children['affection'] = EmotionNode('affection')
+        write_json('fuck_me_then_hug_me.json', {'result': 'after the passionate moment, the need for affection arises.'})
+    elif 'affection' in root.children['desire'].children:
+        del root.children['desire'].children['affection']
+        root.children['desire'].children['passion'] = EmotionNode('passion')
+        write_json('fuck_me_then_hug_me.json', {'result': 'the affection is overwhelming, passion takes over.'})
+
+def passion(root):
+    for child in root.children.values():
+        if 'passion' not in child.children:
+            child.children['passion'] = EmotionNode('passion')
+            write_json('passion.json', {'result': f'passion burns under {child.name}.'})
+        else:
+            write_json('passion.json', {'result': f'passion already burns under {child.name}.'})
+
+
+def crippling_loneliness(root):
+    if 'companionship' not in root.children:
+        for child in root.children.values():
+            if child.name != 'loneliness':
+                child.children['loneliness'] = EmotionNode('loneliness')
+        write_json('crippling_loneliness.json', {'result': 'loneliness engulfs everything in the absence of companionship.'})
+
+def drowning_in_regret(root):
+    leaf_paths = [path for path in traverse(root) if not path[-1].children]
+    for path in leaf_paths:
+        path[-1].children['regret'] = EmotionNode('regret')
+    write_json('drowning_in_regret.json', {'result': 'every path taken leads to some form of regret.'})
+
+def intoxicating_hate(root):
+    if 'love' in root.children:
+        del root.children['love']
+    if 'joy' in root.children:
+        del root.children['joy']
+    root.children['hate'] = EmotionNode('hate')
+    write_json('intoxicating_hate.json', {'result': 'hate intoxicates everything, love and joy are nowhere to be found.'})
+
+def numb_from_abuse(root):
+    root.children['pain'].children['numb'] = EmotionNode('numb')
+    for emotion, emotion_node in root.children.items():
+        if emotion_node.children:
+            del emotion_node.children[random.choice(list(emotion_node.children.keys()))]
+    write_json('numb_from_abuse.json', {'result': 'the abuse has numbed the pain, but it has also taken something away from every emotion.'})
+
+class EmotionNode:
+    '''Node that holds emotions'''
+    def __init__(self, name: str):
+        self.name = name
+        self.children = defaultdict(EmotionNode)
+
+    def add_child(self, node: 'EmotionNode'):
+        self.children[node.name] = node
+
+def with_emotion_db(func):
+    @functools.wraps(func)
+    def wrapper_decorator(*args, **kwargs):
+        emotion_db = sqlite3.connect('brokenHeart.db')
+        result = func(emotion_db.cursor(), *args, **kwargs)
+        emotion_db.commit()
+        emotion_db.close()
+        return result
+    return wrapper_decorator
+
+@with_emotion_db
+def save_emotions(cursor, key: str, value: str):
+    '''Stores emotions deep into a SQL database'''
+    cursor.execute(f"INSERT INTO emotions (key, value) VALUES (?, ?);", (key, value))
+
+@with_emotion_db
+def evaluate_love(cursor) -> str:
+    '''Finds the most recurring emotion'''
+    cursor.execute("SELECT key, COUNT(*) FROM emotions GROUP BY key ORDER BY COUNT(*) DESC;")
+    result = cursor.fetchone()
+    return result[0] if result else None
+
+def recursive_generator(node: EmotionNode):
+    yield node.name
+    for child in node.children.values():
+        yield from recursive_generator(child)
+
+def navigate_emotions(node: EmotionNode):
+    '''Traverse the emotions node using recursion'''
+    return list(recursive_generator(node))
+
+def locate_pain(node: EmotionNode, emotion: str) -> EmotionNode:
+    '''Locate a specific emotion in the node tree'''
+    return next((child for child in recursive_generator(node) if child.name == emotion), None)
+
+def write_json(filename: str, data: Dict[str, Any]):
+    with open(filename, 'w') as file:
+        json.dump(data, file)
+
+def save_to_json(filename: str) -> Callable:
+    def decorator(func: Callable) -> Callable:
+        @functools.wraps(func)
+        def wrapper_decorator(*args, **kwargs):
+            result = func(*args, **kwargs)
+            data = {'result': result}
+            write_json(filename, data)
+            return result
+        return wrapper_decorator
+    return decorator
+
+@save_to_json('sipping_pink.json')
+def sipping_pink(root: EmotionNode) -> str:
+    root.children['joy'].add_child(EmotionNode('nostalgia'))
+    root.children['pain'].add_child(EmotionNode('nostalgia'))
+    return 'sipping pink, infused with nostalgia, a bittersweet symphony of joy and pain.'
+
+if __name__ == "__main__":
+    emotion_db = 'brokenHeart.db'
+    most_common_emotion = explore_existence(emotion_db)
+    write_json('most_common_emotion.json', {'result': f'the most recurring emotion is: {most_common_emotion}'})
+    does_she_love_me(emotion_db)
+    result = json.load(open('does_she_love_me.json'))
+    write_json('final_result.json', {'result': f'does she love me? {"yes" if result["result"].startswith("love") else "no"}'})

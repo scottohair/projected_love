@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Projected Love</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-okaidia.min.css" />
+    <style>
+        html, body, pre {
+            background-color: #000000 !important;
+            color: #F8F8F2;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            margin: 0;
+            padding: 0;
+            overflow: hidden !important;
+        }
+
+        pre {
+            tab-size: 4;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-okaidia.min.css" />
+</head>
+<body>
+    <pre><code id="code" class="language-python"></code></pre>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-python.min.js"></script>
+    <script>
+        function typePythonCode() {
+            fetch('love.txt')
+                .then(response => response.text())
+                .then(data => {
+                    const codeElement = document.getElementById('code');
+                    const codeLines = data.split('\n');
+                    let lineIndex = 0;
+                    let charIndex = 0;
+
+                    function typeChar() {
+                        if (lineIndex < codeLines.length) {
+                            const line = codeLines[lineIndex];
+                            if (charIndex < line.length) {
+                                codeElement.innerHTML += line.charAt(charIndex);
+                                charIndex++;
+                            } else {
+                                codeElement.innerHTML += '\n'; // Preserve line breaks
+                                lineIndex++;
+                                charIndex = 0;
+                            }
+
+                            // Simulate human typing speed
+                            const typingSpeeds = [75, 110, 125, 150]; // milliseconds Faster:
+                            const speed = typingSpeeds[Math.floor(Math.random() * typingSpeeds.length)];
+
+                            Prism.highlightElement(codeElement);
+
+                            setTimeout(typeChar, speed);
+                        } else {
+                            // Wait for 1 minute after typing is done, then delete the contents and start over
+                            setTimeout(() => {
+                                codeElement.innerHTML = '';
+                                typePythonCode();
+                            }, 60 * 1000); // 1 minute
+                        }
+                    }
+
+                    typeChar();
+
+                    // Scroll to bottom every 1 second
+                    setInterval(function() {
+                        window.scrollTo(0,document.body.scrollHeight);
+                    }, 1000);
+                });
+        }
+
+        typePythonCode();
+    </script>
+</body>
+</html>
